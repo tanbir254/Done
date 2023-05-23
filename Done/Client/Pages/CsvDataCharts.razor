@@ -1,0 +1,126 @@
+﻿@page "/csvdatacharts"
+@using System.Globalization
+@using CsvHelper
+@using CsvHelper.Configuration
+@using Microsoft.AspNetCore.Components.Forms
+@using System.IO
+@using Done.Shared
+@using System.Linq
+@using System.Collections.Generic
+@using Microsoft.JSInterop
+@using System.Drawing
+@using Microsoft.AspNetCore.Components
+@using Blazorise.Charts
+@using ChartJs.Blazor.PieChart
+@using ChartJs.Blazor.BarChart
+@using ChartJs.Blazor.LineChart
+
+<h3>CSV Data Charts</h3>
+
+<form>
+    <Microsoft.AspNetCore.Components.Forms.InputFile OnChange="HandleFileUpload" accept=".csv"></Microsoft.AspNetCore.Components.Forms.InputFile>
+</form>
+
+@if (csvData != null && csvData.Any())
+{
+    <BarChart TItem="ChartDataItem" Data="@(new ChartData<ChartDataItem> { Labels = BarChartData.Select(d => (object)d.Label).ToList(), Datasets = new List<ChartDataset<ChartDataItem>> { new ChartDataset<ChartDataItem> { Data = BarChartData } } })" />
+
+    <PieChart TItem="ChartDataItem" Data="@(new ChartData<ChartDataItem> { Labels = PieChartData.Select(d => (object)d.Label).ToList(), Datasets = new List<ChartDataset<ChartDataItem>> { new ChartDataset<ChartDataItem> { Data = PieChartData } } })" />
+
+    <LineChart TItem="ChartDataItem" Data="@(new ChartData<ChartDataItem> { Labels = LineChartData.Select(d => (object)d.Label).ToList(), Datasets = new List<ChartDataset<ChartDataItem>> { new ChartDataset<ChartDataItem> { Data = LineChartData } } })" />
+}
+else
+{
+    <p>No data available.</p>
+}
+
+@code {
+
+    private List<CsvDataGraph> csvData;
+
+    // Define a class to represent a single data item
+    private class ChartDataItem
+    {
+        public string Label { get; set; }
+        public int Value { get; set; }
+    }
+
+    // Define properties to store chart datasets
+    private List<ChartDataItem> BarChartData { get; set; }
+    private List<ChartDataItem> PieChartData { get; set; }
+    private List<ChartDataItem> LineChartData { get; set; }
+
+    private async Task HandleFileUpload(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+
+        if (file != null)
+        {
+            using (var stream = file.OpenReadStream())
+            using (var reader = new StreamReader(stream))
+            using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
+            {
+                csv.Context.RegisterClassMap<CsvDataModelMapp>();
+                csvData = await csv.GetRecordsAsync<CsvDataGraph>().ToListAsync();
+            }
+            BarChartData = GetBarChartData(csvData);
+            PieChartData = GetPieChartData(csvData);
+            LineChartData = GetLineChartData(csvData);
+        }
+    }
+
+    // Define methods to process the data and generate the chart datasets
+    private List<ChartDataItem> GetBarChartData(List<CsvDataGraph> records)
+    {
+        // Example: Count the number of records by gender
+        var groupedData = records
+            .GroupBy(r => r.Gender)
+            .Select(g => new ChartDataItem { Label = g.Key, Value = g.Count() })
+            .ToList();
+
+        return groupedData;
+    }
+
+    private List<ChartDataItem> GetPieChartData(List<CsvDataGraph> records)
+    {
+        // Example: Count the number of records by city
+        var groupedData = records
+            .GroupBy(r => r.City)
+            .Select(g => new ChartDataItem { Label = g.Key, Value = g.Count() })
+            .ToList();
+
+        return groupedData;
+    }
+
+    private List<ChartDataItem> GetLineChartData(List<CsvDataGraph> records)
+    {
+        // Example: Count the number of records by subscription year
+        var groupedData = records
+            .GroupBy(r => r.SubscriptionDate.Year)
+            .Select(g => new ChartDataItem { Label = g.Key.ToString(), Value = g.Count() })
+            .OrderBy(g => g.Label)
+            .ToList();
+
+        return groupedData;
+    }
+
+    // CSV mapping class
+    public sealed class CsvDataModelMapp : ClassMap<CsvDataGraph>
+    {
+        public CsvDataModelMapp()
+        {
+            // Map CSV columns to CsvDataGraph properties
+            Map(m => m.Uid).Name("uid");
+            Map(m => m.FirstName).Name("first_name");
+            Map(m => m.LastName).Name("last_name");
+            Map(m => m.Gender).Name("gender");
+            Map(m => m.Birthday).Name("b_day");
+            Map(m => m.City).Name("city");
+            Map(m => m.State).Name("state");
+            Map(m => m.Zip).Name("zip");
+            Map(m => m.SubscriptionDate).Name("subs_date");
+            // Add more mappings if needed
+        }
+    }
+
+}
