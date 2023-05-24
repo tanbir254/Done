@@ -7,27 +7,28 @@
 @using Done.Shared
 @using System.Linq
 @using System.Collections.Generic
-@using Microsoft.JSInterop
-@using System.Drawing
-@using Microsoft.AspNetCore.Components
 @using Blazorise.Charts
-@using ChartJs.Blazor.PieChart
-@using ChartJs.Blazor.BarChart
-@using ChartJs.Blazor.LineChart
 
 <h3>CSV Data Charts</h3>
 
 <form>
-    <Microsoft.AspNetCore.Components.Forms.InputFile OnChange="HandleFileUpload" accept=".csv"></Microsoft.AspNetCore.Components.Forms.InputFile>
+    <InputFile OnChange="HandleFileUpload" accept=".csv"></InputFile>
 </form>
 
 @if (csvData != null && csvData.Any())
 {
-    <BarChart TItem="ChartDataItem" Data="@(new ChartData<ChartDataItem> { Labels = BarChartData.Select(d => (object)d.Label).ToList(), Datasets = new List<ChartDataset<ChartDataItem>> { new ChartDataset<ChartDataItem> { Data = BarChartData } } })" />
-
-    <PieChart TItem="ChartDataItem" Data="@(new ChartData<ChartDataItem> { Labels = PieChartData.Select(d => (object)d.Label).ToList(), Datasets = new List<ChartDataset<ChartDataItem>> { new ChartDataset<ChartDataItem> { Data = PieChartData } } })" />
-
-    <LineChart TItem="ChartDataItem" Data="@(new ChartData<ChartDataItem> { Labels = LineChartData.Select(d => (object)d.Label).ToList(), Datasets = new List<ChartDataset<ChartDataItem>> { new ChartDataset<ChartDataItem> { Data = LineChartData } } })" />
+    <div class="chart-container">
+        <h4>Chart 1</h4>
+        <LineChart TItem="int" Data="GetChartData1()" />
+    </div>
+    <div class="chart-container">
+        <h4>Chart 2</h4>
+        <BarChart TItem="int" Data="GetChartData2()" />
+    </div>
+    <div class="chart-container">
+        <h4>Chart 3</h4>
+        <PieChart TItem="int" Data="GetChartData3()" />
+    </div>
 }
 else
 {
@@ -35,73 +36,99 @@ else
 }
 
 @code {
-
     private List<CsvDataGraph> csvData;
-
-    // Define a class to represent a single data item
-    private class ChartDataItem
-    {
-        public string Label { get; set; }
-        public int Value { get; set; }
-    }
-
-    // Define properties to store chart datasets
-    private List<ChartDataItem> BarChartData { get; set; }
-    private List<ChartDataItem> PieChartData { get; set; }
-    private List<ChartDataItem> LineChartData { get; set; }
 
     private async Task HandleFileUpload(InputFileChangeEventArgs e)
     {
         var file = e.File;
-
+        
         if (file != null)
         {
             using (var stream = file.OpenReadStream())
             using (var reader = new StreamReader(stream))
             using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
             {
+                
                 csv.Context.RegisterClassMap<CsvDataModelMapp>();
                 csvData = await csv.GetRecordsAsync<CsvDataGraph>().ToListAsync();
             }
-            BarChartData = GetBarChartData(csvData);
-            PieChartData = GetPieChartData(csvData);
-            LineChartData = GetLineChartData(csvData);
         }
     }
 
-    // Define methods to process the data and generate the chart datasets
-    private List<ChartDataItem> GetBarChartData(List<CsvDataGraph> records)
+    private ChartData<int> GetChartData1()
     {
-        // Example: Count the number of records by gender
-        var groupedData = records
-            .GroupBy(r => r.Gender)
-            .Select(g => new ChartDataItem { Label = g.Key, Value = g.Count() })
-            .ToList();
-
-        return groupedData;
+      //  Console.WriteLine(333333333333333);
+        // Prepare data for Chart 1
+        // Use the csvData list to generate the chart data
+        // Example: Group by Gender and count occurrences
+        var genderCounts = csvData.GroupBy(d => d.Gender)
+                                  .Select(g => g.Count())
+                                  .ToList();
+      //  Console.WriteLine(11111111111111);
+        var chartData = new ChartData<int>
+            {
+                Labels = genderCounts.Select((_, index) => (object)$"Gender {index + 1}").ToList(), // Explicit cast to List<object>
+                Datasets = new List<ChartDataset<int>>
+        {
+            new ChartDataset<int>
+            {
+                Label = "Gender Counts",
+                Data = genderCounts
+            }
+        }
+            };
+      //  Console.WriteLine(2222222222222222222);
+        return chartData;
     }
 
-    private List<ChartDataItem> GetPieChartData(List<CsvDataGraph> records)
+    private ChartData<int> GetChartData2()
     {
-        // Example: Count the number of records by city
-        var groupedData = records
-            .GroupBy(r => r.City)
-            .Select(g => new ChartDataItem { Label = g.Key, Value = g.Count() })
-            .ToList();
+        // Prepare data for Chart 2
+        // Use the csvData list to generate the chart data
+        // Example: Group by City and count occurrences
+        var cityCounts = csvData.GroupBy(d => d.City)
+                                .Select(g => g.Count())
+                                .ToList();
 
-        return groupedData;
+        var chartData = new ChartData<int>
+            {
+                Labels = cityCounts.Select((_, index) => (object)$"City {index + 1}").ToList(), // Explicit cast to List<object>
+                Datasets = new List<ChartDataset<int>>
+        {
+            new ChartDataset<int>
+            {
+                Label = "City Counts",
+                Data = cityCounts
+            }
+        }
+            };
+
+        return chartData;
     }
 
-    private List<ChartDataItem> GetLineChartData(List<CsvDataGraph> records)
+    private ChartData<int> GetChartData3()
     {
-        // Example: Count the number of records by subscription year
-        var groupedData = records
-            .GroupBy(r => r.SubscriptionDate.Year)
-            .Select(g => new ChartDataItem { Label = g.Key.ToString(), Value = g.Count() })
-            .OrderBy(g => g.Label)
-            .ToList();
+        // Prepare data for Chart 3
+        // Use the csvData list to generate the chart data
+        // Example: Group by State and count occurrences
+        var stateCounts = csvData.GroupBy(d => d.State)
+                                 .Select(g => g.Count())
+                                 .ToList();
 
-        return groupedData;
+        var chartData = new ChartData<int>
+            {
+                Labels = stateCounts.Select((_, index) => (object)$"State {index + 1}").ToList(), // Explicit cast to List<object>
+                Datasets = new List<ChartDataset<int>>
+        {
+            new ChartDataset<int>
+            {
+                Label = "State Counts",
+                Data = stateCounts
+            }
+        }
+            };
+
+        return chartData;
     }
 
     // CSV mapping class
@@ -110,7 +137,7 @@ else
         public CsvDataModelMapp()
         {
             // Map CSV columns to CsvDataGraph properties
-            Map(m => m.Uid).Name("uid");
+            Map(m=>m.Uid).Name("uid");
             Map(m => m.FirstName).Name("first_name");
             Map(m => m.LastName).Name("last_name");
             Map(m => m.Gender).Name("gender");
@@ -122,5 +149,4 @@ else
             // Add more mappings if needed
         }
     }
-
 }
